@@ -61,7 +61,7 @@ if "%program%"=="1" (
     )
 
     REM Remove the downloaded ZIP archive & 7-Zip installer
-::    del "%~dp0Mangio-RVC-%version%_INFER_TRAIN.7z"
+    del "%~dp0Mangio-RVC-%version%_INFER_TRAIN.7z"
     del "%~dp0%zipversion%.exe"
 
 ) else if "%program%"=="2" (
