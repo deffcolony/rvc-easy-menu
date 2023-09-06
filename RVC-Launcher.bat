@@ -1,17 +1,124 @@
 @echo off
+REM RVC-Launcher v0.0.2
+REM Created by: Deffcolony
+REM
+REM Description:
+REM This script installs winget, 7-zip and Mangio-RVC 
+REM
+REM Usage:
+REM 1. install Mangio-RVC 
+REM 2. Launch this script again and choose option 2 or 3 
+REM
+REM This script is intended for use on Windows systems. Please
+REM report any issues or bugs on the GitHub repository.
+REM
+REM GitHub: https://github.com/deffcolony/rvc-easy-menu
+REM Issues: https://github.com/deffcolony/rvc-easy-menu/issues
+
 title RVC Menu : By Deffcolony
 setlocal
 
-REM Envoirement Variables
+REM ANSI Escape Code for Colors
+set "reset=[0m"
+
+REM Strong Foreground Colors
+set "white_fg_strong=[90m"
+set "red_fg_strong=[91m"
+set "green_fg_strong=[92m"
+set "yellow_fg_strong=[93m"
+set "blue_fg_strong=[94m"
+set "magenta_fg_strong=[95m"
+set "cyan_fg_strong=[96m"
+
+REM Normal Background Colors
+set "red_bg=[41m"
+set "blue_bg=[44m"
+
+REM Environment Variables
 set "version=v23.7.0"
-set "zipversion=7z2301-x64"
 set "dir=%~dp0Mangio-RVC-%version%_INFER_TRAIN\Mangio-RVC-%version%\"
 set "logfile=%~dp0install-logs.log"
+
+REM Environment Variables (winget)
+set "winget_path=%userprofile%\AppData\Local\Microsoft\WindowsApps"
+
 
 REM Clear log file
 echo. > "%logfile%"
 
-REM Menu frontend
+REM Check if Winget is installed; if not, then install it
+winget --version > nul 2>&1
+if %errorlevel% neq 0 (
+    echo %yellow_fg_strong%[WARN] Winget is not installed on this system.%reset%
+    echo %blue_fg_strong%[INFO]%reset% Installing Winget...
+    bitsadmin /transfer "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe" /download /priority FOREGROUND "https://github.com/microsoft/winget-cli/releases/download/v1.5.2201/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle" "%temp%\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+    start "" "%temp%\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+    echo %green_fg_strong%Winget is now installed.%reset%
+) else (
+    echo %blue_fg_strong%[INFO] Winget is already installed.%reset%
+)
+
+rem Get the current PATH value from the registry
+for /f "tokens=2*" %%A in ('reg query "HKCU\Environment" /v PATH') do set "current_path=%%B"
+
+rem Check if the paths are already in the current PATH
+echo %current_path% | find /i "%winget_path%" > nul
+set "ff_path_exists=%errorlevel%"
+
+rem Append the new paths to the current PATH only if they don't exist
+if %ff_path_exists% neq 0 (
+    set "new_path=%current_path%;%winget_path%"
+
+    rem Update the PATH value in the registry
+    reg add "HKCU\Environment" /v PATH /t REG_EXPAND_SZ /d "%new_path%" /f
+
+    rem Update the PATH value for the current session
+    setx PATH "%new_path%" > nul
+    echo %green_fg_strong%winget added to PATH.%reset%
+) else (
+    set "new_path=%current_path%"
+    echo %blue_fg_strong%[INFO] winget already exists in PATH.%reset%
+)
+
+REM Check if 7-Zip is installed; if not, then install it
+7z --version > nul 2>&1
+if %errorlevel% neq 0 (
+    echo %yellow_fg_strong%[WARN] 7-Zip is not installed on this system.%reset%
+    echo %blue_fg_strong%[INFO]%reset% Installing 7-Zip using Winget...
+    winget install -e --id 7zip.7zip
+    echo %green_fg_strong%7-Zip installed.%reset%
+    exit
+) else (
+    echo %blue_fg_strong%[INFO]%reset% 7-Zip is already installed.
+)
+
+rem Get the current PATH value from the registry
+for /f "tokens=2*" %%A in ('reg query "HKCU\Environment" /v PATH') do set "current_path=%%B"
+
+rem Check if the paths are already in the current PATH
+echo %current_path% | find /i "%zip7_install_path%" > nul
+set "zip7_path_exists=%errorlevel%"
+
+rem Append the new paths to the current PATH only if they don't exist
+if %zip7_path_exists% neq 0 (
+    set "new_path=%current_path%;%zip7_install_path%"
+    echo %green_fg_strong%7-Zip added to PATH.%reset%
+) else (
+    set "new_path=%current_path%"
+    echo %blue_fg_strong%[INFO] 7-Zip already exists in PATH.%reset%
+)
+
+rem Update the PATH value in the registry
+reg add "HKCU\Environment" /v PATH /t REG_EXPAND_SZ /d "%new_path%" /f
+
+rem Update the PATH value for the current session
+setx PATH "%new_path%"
+
+echo %green_fg_strong%7-Zip is installed.%reset%
+
+pause
+
+REM Menu Frontend
 :menu
 cls
 echo What would you like to do?
@@ -22,25 +129,10 @@ echo 3. go-realtime-gui.bat : Voice Changer that is useable with Discord, Steam,
 echo 4. Exit
 set /p program=Choose Your Destiny: 
 
+
+REM Menu Backend
 if "%program%"=="1" (
-    REM Download 7-Zip MSI installer
-    bitsadmin /transfer "infertraindwnl" /download /priority FOREGROUND ^
-        "https://www.7-zip.org/a/%zipversion%.exe" ^
-        "%~dp0%zipversion%.exe" || (
-            color 4
-            echo [%date% %time%] ERROR: Download failed >>"%logfile%"
-            echo ERROR: Download failed. Check the log file at %logfile% for more information.
-            pause
-            exit /b 1
-        )
-
-    REM Install 7-Zip
-    echo [%date% %time%] INFO: Launching 7-Zip Installer... >>"%logfile%"
-    powershell.exe -nologo -noprofile -command "Start-Process '%~dp0%zipversion%.exe' -Verb runAs"
-    pause
-    echo [%date% %time%] INFO: 7-Zip Installation complete. >>"%logfile%"
-
-    REM Download the 7z archive
+    REM Download Mangio-RVC 7z archive
     bitsadmin /transfer "infertraindwnl" /download /priority FOREGROUND ^
         "https://huggingface.co/MangioRVC/Mangio-RVC-Huggingface/resolve/main/Mangio-RVC-%version%_INFER_TRAIN.7z" ^
         "%~dp0Mangio-RVC-%version%_INFER_TRAIN.7z" || (
@@ -51,7 +143,7 @@ if "%program%"=="1" (
             exit /b 1
         )
 
-    REM Extract the downloaded 7z archive
+    REM Extract Mangio-RVC 7z archive
     "%ProgramFiles%\7-Zip\7z.exe" x "%~dp0Mangio-RVC-%version%_INFER_TRAIN.7z" -o"%~dp0Mangio-RVC-%version%_INFER_TRAIN" || (
         color 4
         echo [%date% %time%] ERROR: Extraction failed >>"%logfile%"
@@ -60,9 +152,8 @@ if "%program%"=="1" (
         exit /b 1
     )
 
-    REM Remove the downloaded ZIP archive & 7-Zip installer
+    REM Remove Mangio-RVC 7z archive
     del "%~dp0Mangio-RVC-%version%_INFER_TRAIN.7z"
-    del "%~dp0%zipversion%.exe"
 
 ) else if "%program%"=="2" (
     if exist "%dir%\go-web.bat" (
@@ -92,7 +183,7 @@ if "%program%"=="1" (
     goto :exit
 ) else (
     color 6
-    echo WARNING: Invalid choice, please choose 1, 2, 3, or 4.
+    echo WARNING: Invalid number. Please insert a valid number.
     pause
 )
 
