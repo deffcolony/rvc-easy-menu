@@ -87,7 +87,6 @@ if %errorlevel% neq 0 (
     echo %blue_fg_strong%[INFO]%reset% Installing 7-Zip using Winget...
     winget install -e --id 7zip.7zip
     echo %green_fg_strong%7-Zip installed.%reset%
-    exit
 ) else (
     echo %blue_fg_strong%[INFO]%reset% 7-Zip is already installed.
 )
@@ -115,8 +114,6 @@ rem Update the PATH value for the current session
 setx PATH "%new_path%"
 
 echo %green_fg_strong%7-Zip is installed.%reset%
-
-pause
 
 REM Menu Frontend
 :menu
