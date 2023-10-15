@@ -12,10 +12,8 @@ REM
 REM This script is intended for use on Windows systems. Please
 REM report any issues or bugs on the GitHub repository.
 REM
-REM GitHub: https://github.com/deffcolony/rvc-easy-menu
-REM Issues: https://github.com/deffcolony/rvc-easy-menu/issues
-
-title RVC Menu : By Deffcolony
+REM GitHub: https://github.com/deffcolony/rvc-easy-home
+REM Issues: https://github.com/deffcolony/rvc-easy-home/issues
 setlocal
 
 REM ANSI Escape Code for Colors
@@ -42,6 +40,8 @@ set "logfile=%~dp0install-logs.log"
 REM Environment Variables (winget)
 set "winget_path=%userprofile%\AppData\Local\Microsoft\WindowsApps"
 
+REM Environment Variables (7z)
+set "zip7_install_path=%ProgramFiles%\7-Zip"
 
 REM Clear log file
 echo. > "%logfile%"
@@ -81,14 +81,14 @@ if %ff_path_exists% neq 0 (
 )
 
 REM Check if 7-Zip is installed; if not, then install it
-7z --version > nul 2>&1
+7z > nul 2>&1
 if %errorlevel% neq 0 (
     echo %yellow_fg_strong%[WARN] 7-Zip is not installed on this system.%reset%
     echo %blue_fg_strong%[INFO]%reset% Installing 7-Zip using Winget...
     winget install -e --id 7zip.7zip
     echo %green_fg_strong%7-Zip installed.%reset%
 ) else (
-    echo %blue_fg_strong%[INFO]%reset% 7-Zip is already installed.
+    echo %blue_fg_strong%[INFO] 7-Zip is already installed.%reset%
 )
 
 rem Get the current PATH value from the registry
@@ -113,32 +113,62 @@ reg add "HKCU\Environment" /v PATH /t REG_EXPAND_SZ /d "%new_path%" /f
 rem Update the PATH value for the current session
 setx PATH "%new_path%"
 
-echo %green_fg_strong%7-Zip is installed.%reset%
 
-REM Menu Frontend
-:menu
+REM home Frontend
+:home
+title Mangio RVC [HOME]
 cls
+echo %blue_fg_strong%/ Home %reset%
+echo -------------------------------------
 echo What would you like to do?
-color 7
-echo 1. Install RVC
-echo 2. go-web.bat : Voice Training, Voice Cover Creation
-echo 3. go-realtime-gui.bat : Voice Changer that is useable with Discord, Steam, etc...
+echo 1. Install Mangio RVC
+echo 2. Run go-web.bat : Voice Training, Voice Cover Creation
+echo 3. Run go-realtime-gui.bat : Voice Changer that is useable with Discord, Steam, etc...
 echo 4. Exit
-set /p program=Choose Your Destiny: 
+
+set "choice="
+set /p "choice=Choose Your Destiny: "
+
+REM Default to choice 1 if no input is provided
+REM Disable REM below to enable default choise
+REM if not defined choice set "choice=1"
+
+REM home - Backend
+if "%choice%"=="1" (
+    call :installmangiorvc
+) else if "%choice%"=="2" (
+    call :rungoweb
+) else if "%choice%"=="3" (
+    call :rungorealtime
+) else if "%choice%"=="4" (
+    exit
+) else (
+    color 6
+    echo WARNING: Invalid number. Please insert a valid number.
+    pause
+    goto :home
+)
 
 
-REM Menu Backend
-if "%program%"=="1" (
+:installmangiorvc
+title Mangio RVC [INSTALL]
+cls
+echo %blue_fg_strong%/ Home / Install Mangio RVC%reset%
+echo ---------------------------------------------------------------
+echo %blue_fg_strong%[INFO]%reset% Installing Mangio RVC...
+echo --------------------------------
+echo %cyan_fg_strong%This may take a while. Please be patient.%reset%
+
     REM Download Mangio-RVC 7z archive
     bitsadmin /transfer "infertraindwnl" /download /priority FOREGROUND ^
-        "https://huggingface.co/MangioRVC/Mangio-RVC-Huggingface/resolve/main/Mangio-RVC-%version%_INFER_TRAIN.7z" ^
-        "%~dp0Mangio-RVC-%version%_INFER_TRAIN.7z" || (
-            color 4
-            echo [%date% %time%] ERROR: Download failed >>"%logfile%"
-            echo Download failed. Check the log file at %logfile% for more information.
-            pause
-            exit /b 1
-        )
+    "https://huggingface.co/MangioRVC/Mangio-RVC-Huggingface/resolve/main/Mangio-RVC-%version%_INFER_TRAIN.7z" ^
+    "%~dp0Mangio-RVC-%version%_INFER_TRAIN.7z" || (
+        color 4
+        echo [%date% %time%] ERROR: Download failed >>"%logfile%"
+        echo Download failed. Check the log file at %logfile% for more information.
+        pause
+        exit /b 1
+    )
 
     REM Extract Mangio-RVC 7z archive
     "%ProgramFiles%\7-Zip\7z.exe" x "%~dp0Mangio-RVC-%version%_INFER_TRAIN.7z" -o"%~dp0Mangio-RVC-%version%_INFER_TRAIN" || (
@@ -151,8 +181,13 @@ if "%program%"=="1" (
 
     REM Remove Mangio-RVC 7z archive
     del "%~dp0Mangio-RVC-%version%_INFER_TRAIN.7z"
+goto :home
 
-) else if "%program%"=="2" (
+:rungoweb
+title Mangio RVC [GO-WEB]
+cls
+echo %blue_fg_strong%/ Home / Run go-web.bat%reset%
+echo ---------------------------------------------------------------
     if exist "%dir%\go-web.bat" (
         color a
         echo [%date% %time%] INFO: Starting RVC webui... >>"%logfile%"
@@ -164,7 +199,13 @@ if "%program%"=="1" (
         echo ERROR: File not found. Check the log file at %logfile% for more information.
         pause
     )
-) else if "%program%"=="3" (
+goto :home
+
+:rungorealtime
+title Mangio RVC [GO-REALTIME-GUI]
+cls
+echo %blue_fg_strong%/ Home / Run go-realtime-gui.bat%reset%
+echo ---------------------------------------------------------------
     if exist "%dir%\go-realtime-gui.bat" (
         color a
         echo [%date% %time%] INFO: Starting RVC realtime gui... >>"%logfile%"
@@ -176,16 +217,4 @@ if "%program%"=="1" (
         echo ERROR: File not found. Check the log file at %logfile% for more information.
         pause
     )
-) else if "%program%"=="4" (
-    goto :exit
-) else (
-    color 6
-    echo WARNING: Invalid number. Please insert a valid number.
-    pause
-)
-
-goto :menu
-
-REM Exit the script
-:exit
-echo [%date% %time%] INFO: Exiting menu... Bye>>"%logfile%"
+goto :home
